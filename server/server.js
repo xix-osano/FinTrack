@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const errorHandler = require('./middleware/errorHandler');
-const bugRoutes = require('./routes/bugRoutes');
+const expenseRoutes = require('./routes/expenseRoutes');
+const authRoutes = require('./routes/authRoutes');
 const connectDB = require('./config/db');
 
 dotenv.config();
@@ -14,7 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/bugs', bugRoutes);
+app.use('/api', expenseRoutes);
+app.use('/api', authRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
