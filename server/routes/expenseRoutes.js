@@ -1,122 +1,68 @@
 const express = require('express');
-const Expense = require('../models/Expense');
-const authMiddleware = require('../middleware/authMiddleware');
-const mongoose = require('mongoose');
-
 const router = express.Router();
+const auth = require('../middleware/authMiddleware'); // Our custom auth middleware
+const Expense = require('../models/Expense');
 
-router.get('/api/expenses', authMiddleware, async (req, res) => {
-  try {
-    const { category, startDate, endDate } = req.query;
-    let query = { userId: req.userId };
-    
-    if (category) {
-      query.category = category;
+// @route   POST /api/expenses
+// @desc    Add new expense
+// @access  Private
+router.post('/', auth, async (req, res) => {
+    const { description, amount, category } = req.body;
+
+    try {
+        const newExpense = new Expense({
+            user: req.user.id, // User ID from auth middleware
+            description,
+            amount,
+            category,
+        });
+
+        const expense = await newExpense.save();
+        res.json(expense); // Return the saved expense
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send('Server error');
     }
-    
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate)
-      };
-    }
-    
-    const expenses = await Expense.find(query).sort({ date: -1 });
-    res.json(expenses);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
 });
 
-router.post('/api/expenses', authMiddleware, async (req, res) => {
-  try {
-    const { title, amount, category, description, date } = req.body;
-    
-    const expense = new Expense({
-      userId: req.userId,
-      title,
-      amount: parseFloat(amount),
-      category,
-      description,
-      date: date ? new Date(date) : new Date()
-    });
-    
-    await expense.save();
-    res.status(201).json(expense);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-router.put('/api/expenses/:id', authMiddleware, async (req, res) => {
-  try {
-    const { title, amount, category, description, date } = req.body;
-    
-    const expense = await Expense.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      {
-        title,
-        amount: parseFloat(amount),
-        category,
-        description,
-        date: date ? new Date(date) : new Date()
-      },
-      { new: true }
-    );
-    
-    if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
+// @route   GET /api/expenses
+// @desc    Get all expenses for the authenticated user
+// @access  Private
+router.get('/', auth, async (req, res) => {
+    try {
+        const expenses = await Expense.find({ user: req.user.id }).sort({ date: -1 }); // Sort by newest first
+        res.json(expenses);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send('Server error');
     }
-    
-    res.json(expense);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
 });
 
-router.delete('/api/expenses/:id', authMiddleware, async (req, res) => {
-  try {
-    const expense = await Expense.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.userId
-    });
-    
-    if (!expense) {
-      return res.status(404).json({ message: 'Expense not found' });
-    }
-    
-    res.json({ message: 'Expense deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
+// @route   DELETE /api/expenses/:id
+// @desc    Delete an expense
+// @access  Private
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        let expense = await Expense.findById(req.params.id);
 
-// Get expense statistics
-router.get('/api/expenses/stats', authMiddleware, async (req, res) => {
-  try {
-    const stats = await Expense.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(req.userId) } },
-      {
-        $group: {
-          _id: '$category',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 }
+        if (!expense) {
+            return res.status(404).json({ message: 'Expense not found' });
         }
-      }
-    ]);
-    
-    const totalExpenses = await Expense.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(req.userId) } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    
-    res.json({
-      categoryStats: stats,
-      totalAmount: totalExpenses[0]?.total || 0
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
+
+        // Ensure user owns the expense
+        if (expense.user.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        await Expense.deleteOne({ _id: req.params.id }); // Use deleteOne for Mongoose 6+
+        res.json({ message: 'Expense removed' });
+    } catch (error) {
+        console.error(error.message);
+        if (error.kind === 'ObjectId') { // Handle invalid ID format
+            return res.status(404).json({ message: 'Expense not found' });
+        }
+        res.status(500).send('Server error');
+    }
 });
 
 module.exports = router;
