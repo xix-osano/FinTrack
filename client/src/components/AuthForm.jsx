@@ -1,22 +1,71 @@
 import React, { useState, useEffect } from 'react';
 
-// AuthForm component integrating the provided HTML/CSS/JS logic
-const AuthForm = ({ navigate, initialPath }) => {
-    // State to control which form (login or register) is active
+const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
     const [isRegisterActive, setIsRegisterActive] = useState(initialPath === 'register');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [message, setMessage] = useState(''); // For displaying success/error messages
 
-    // Effect to update the URL hash based on active form
     useEffect(() => {
         if (isRegisterActive) {
             navigate('register');
         } else {
             navigate('login');
         }
+        setMessage(''); // Clear message on form switch
     }, [isRegisterActive, navigate]);
 
-    // Inline CSS from SignUp_LogIn_Form.css, adapted for React
-    // Note: Tailwind CSS is preferred, but for a faithful reproduction of the provided design,
-    // this specific CSS is included directly.
+    const handleLoginSubmit = async (e) => {
+        e.preventDefault();
+        setMessage('');
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/login', { // Replace with your backend URL
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                onAuthSuccess(data.token); // Pass token to App.js
+            } else {
+                setMessage(data.msg || 'Login failed');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            setMessage('Network error. Please try again.');
+        }
+    };
+
+    const handleRegisterSubmit = async (e) => {
+        e.preventDefault();
+        setMessage('');
+        try {
+            const response = await fetch('http://localhost:5000/api/auth/register', { // Replace with your backend URL
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, email, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                onAuthSuccess(data.token); // Pass token to App.js
+            } else {
+                setMessage(data.msg || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('Registration error:', error);
+            setMessage('Network error. Please try again.');
+        }
+    };
+
     const authFormStyles = `
         @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 
@@ -29,7 +78,7 @@ const AuthForm = ({ navigate, initialPath }) => {
             border-radius: 30px;
             box-shadow: 0 0 30px rgba(0, 0, 0, .2);
             overflow: hidden;
-            display: flex; /* Use flex to manage form-box and toggle-box */
+            display: flex;
         }
 
         .container h1 {
@@ -49,9 +98,9 @@ const AuthForm = ({ navigate, initialPath }) => {
             height: 100%;
             background: #fff;
             display: flex;
-            flex-direction: column; /* Changed to column for better alignment */
+            flex-direction: column;
             align-items: center;
-            justify-content: center; /* Center content vertically */
+            justify-content: center;
             color: #333;
             text-align: center;
             padding: 40px;
@@ -67,7 +116,7 @@ const AuthForm = ({ navigate, initialPath }) => {
         .input-box {
             position: relative;
             margin: 30px 0;
-            width: 100%; /* Ensure input box takes full width of its container */
+            width: 100%;
         }
 
         .input-box input {
@@ -104,7 +153,7 @@ const AuthForm = ({ navigate, initialPath }) => {
         .btn {
             width: 100%;
             height: 48px;
-            background: #365cc7ff;
+            background: #1f42a3ff;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, .1);
             border: none;
@@ -112,13 +161,13 @@ const AuthForm = ({ navigate, initialPath }) => {
             font-size: 16px;
             color: #fff;
             font-weight: 600;
-            margin-top: 10px; /* Added margin for spacing */
+            margin-top: 10px;
         }
 
         .social-icons {
             display: flex;
             justify-content: center;
-            margin-top: 20px; /* Added margin for spacing */
+            margin-top: 20px;
         }
 
         .social-icons a {
@@ -135,7 +184,7 @@ const AuthForm = ({ navigate, initialPath }) => {
             position: absolute;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Allow clicks to pass through to buttons */
+            pointer-events: none;
         }
 
         .toggle-box::before {
@@ -144,7 +193,7 @@ const AuthForm = ({ navigate, initialPath }) => {
             left: -250%;
             width: 300%;
             height: 100%;
-            background: #365cc7ff;
+            background: #1f42a3ff;
             border-radius: 150px;
             z-index: 2;
             transition: 1.8s ease-in-out;
@@ -163,7 +212,7 @@ const AuthForm = ({ navigate, initialPath }) => {
             align-items: center;
             z-index: 2;
             transition: .6s ease-in-out;
-            pointer-events: auto; /* Re-enable clicks for buttons */
+            pointer-events: auto;
         }
 
         .toggle-panel.toggle-left {
@@ -201,7 +250,7 @@ const AuthForm = ({ navigate, initialPath }) => {
                 bottom: 0;
                 width: 100%;
                 height: 70%;
-                right: 0 !important; /* Override active state for mobile */
+                right: 0 !important;
                 transition: .6s ease-in-out 1.2s, visibility 0s 1s;
             }
             .container.active .form-box {
@@ -229,9 +278,9 @@ const AuthForm = ({ navigate, initialPath }) => {
             .toggle-panel {
                 width: 100%;
                 height: 30%;
-                left: 0 !important; /* Override active state for mobile */
-                right: 0 !important; /* Override active state for mobile */
-                transition-delay: 0s !important; /* Remove delays for better mobile transition */
+                left: 0 !important;
+                right: 0 !important;
+                transition-delay: 0s !important;
             }
             .toggle-panel.toggle-left { top: 0; }
             .toggle-panel.toggle-right { bottom: -30%; }
@@ -245,31 +294,33 @@ const AuthForm = ({ navigate, initialPath }) => {
         }
     `;
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // Here you would typically send data to your backend
-        // For now, we'll just navigate to the dashboard on successful submission
-        console.log("Form submitted!");
-        // Simulate successful login/registration
-        navigate('dashboard');
-    };
-
     return (
         <div className={`container ${isRegisterActive ? 'active' : ''}`}>
-            {/* Inject the CSS directly */}
             <style>{authFormStyles}</style>
-            {/* Boxicons CDN */}
             <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet' />
 
             <div className="form-box login">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleLoginSubmit}>
                     <h1>Login</h1>
+                    {message && <p className="text-red-500 text-sm mb-2">{message}</p>}
                     <div className="input-box">
-                        <input type="text" placeholder="Username" required />
-                        <i className='bx bxs-user'></i>
+                        <input
+                            type="email"
+                            placeholder="Email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                        <i className='bx bxs-envelope'></i>
                     </div>
                     <div className="input-box">
-                        <input type="password" placeholder="Password" required />
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
                         <i className='bx bxs-lock-alt'></i>
                     </div>
                     <div className="forgot-link">
@@ -287,18 +338,37 @@ const AuthForm = ({ navigate, initialPath }) => {
             </div>
 
             <div className="form-box register">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleRegisterSubmit}>
                     <h1>Registration</h1>
+                    {message && <p className="text-red-500 text-sm mb-2">{message}</p>}
                     <div className="input-box">
-                        <input type="text" placeholder="Username" required />
+                        <input
+                            type="text"
+                            placeholder="Username"
+                            required
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
                         <i className='bx bxs-user'></i>
                     </div>
                     <div className="input-box">
-                        <input type="email" placeholder="Email" required />
+                        <input
+                            type="email"
+                            placeholder="Email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
                         <i className='bx bxs-envelope'></i>
                     </div>
                     <div className="input-box">
-                        <input type="password" placeholder="Password" required />
+                        <input
+                            type="password"
+                            placeholder="Password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
                         <i className='bx bxs-lock-alt'></i>
                     </div>
                     <button type="submit" className="btn">Register</button>
@@ -328,5 +398,4 @@ const AuthForm = ({ navigate, initialPath }) => {
         </div>
     );
 };
-
 export default AuthForm;

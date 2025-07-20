@@ -1,39 +1,33 @@
 const express = require('express');
-const cors = require('cors');
 const dotenv = require('dotenv');
-const errorHandler = require('./middleware/errorHandler');
-const expenseRoutes = require('./routes/expenseRoutes');
-const authRoutes = require('./routes/authRoutes');
 const connectDB = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
+const expenseRoutes = require('./routes/expenseRoutes');
+const cors = require('cors'); // Import cors
 
+// Load environment variables from .env file
 dotenv.config();
+
+// Connect to database
+connectDB();
 
 const app = express();
 
 // Middleware
+// Enable CORS for all routes - important for frontend-backend communication
 app.use(cors());
+// Body parser for JSON requests
 app.use(express.json());
 
-// Routes
-app.use('/api/expenses', expenseRoutes);
+// Define API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/expenses', expenseRoutes);
 
-// Basic route for testing
+// Basic route for testing server status
 app.get('/', (req, res) => {
-    res.send('Expense Tracker API is running...');
+    res.send('API is running...');
 });
-
-// Error handling middleware
-app.use(errorHandler);
-
-// Database connection
-connectDB();
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-console.log(`Server running on port ${PORT}`);
-});
-
-
-module.exports = app;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -3,25 +3,25 @@ const mongoose = require('mongoose');
 const ExpenseSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User', // References the User model
+        ref: 'User',
         required: true
     },
     description: {
         type: String,
-        required: true,
+        required: [true, 'Please add a description'],
         trim: true
     },
     amount: {
         type: Number,
-        required: true,
-        min: 0.01 // Ensures amount is positive
+        required: [true, 'Please add a positive amount'],
+        min: [0, 'Amount must be a positive number']
     },
     category: {
         type: String,
-        required: true,
-        trim: true
+        enum: ['Food', 'Transport', 'Utilities', 'Entertainment', 'Shopping', 'Salary', 'Rent', 'Other'],
+        default: 'Other'
     },
-    createdAt: {
+    date: {
         type: Date,
         default: Date.now
     }

@@ -20,14 +20,14 @@ const ExpenseList = ({ expenses, onDeleteExpense, onEditExpense }) => {
                         </thead>
                         <tbody>
                             {expenses.map((expense) => (
-                                <tr key={expense.id} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+                                <tr key={expense._id || expense.id} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
                                     <td className="py-3 px-4 text-gray-800">{expense.description}</td>
                                     <td className="py-3 px-4 text-gray-800">${expense.amount.toFixed(2)}</td>
                                     <td className="py-3 px-4 text-gray-800">{expense.category}</td>
-                                    <td className="py-3 px-4 text-gray-800">{expense.date}</td>
+                                    <td className="py-3 px-4 text-gray-800">{new Date(expense.date).toLocaleDateString()}</td>
                                     <td className="py-3 px-4 flex space-x-2">
                                         <button
-                                            onClick={() => onEditExpense(expense.id)}
+                                            onClick={() => onEditExpense(expense._id || expense.id, { /* pass updated data */ })}
                                             className="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded-md transition duration-200"
                                             title="Edit Expense"
                                         >
@@ -36,7 +36,7 @@ const ExpenseList = ({ expenses, onDeleteExpense, onEditExpense }) => {
                                             </svg>
                                         </button>
                                         <button
-                                            onClick={() => onDeleteExpense(expense.id)}
+                                            onClick={() => onDeleteExpense(expense._id || expense.id)}
                                             className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-md transition duration-200"
                                             title="Delete Expense"
                                         >
@@ -54,4 +54,4 @@ const ExpenseList = ({ expenses, onDeleteExpense, onEditExpense }) => {
         </div>
     );
 };
-export default ExpenseList; // Export ExpenseList
+export default ExpenseList;

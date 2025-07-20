@@ -16,10 +16,11 @@ const ExpenseForm = ({ onAddExpense }) => {
         e.preventDefault();
         if (!newExpense.description || !newExpense.amount) {
             console.error("Description and Amount are required.");
+            // In a real app, you'd show a user-friendly error message
             return;
         }
-        onAddExpense(newExpense); // Pass the new expense data up to the parent
-        setNewExpense({ description: '', amount: '', category: 'Food' }); // Reset form
+        onAddExpense(newExpense);
+        setNewExpense({ description: '', amount: '', category: 'Food' });
     };
 
     return (
@@ -70,4 +71,4 @@ const ExpenseForm = ({ onAddExpense }) => {
         </div>
     );
 };
-export default ExpenseForm; // Export ExpenseForm
+export default ExpenseForm;
