@@ -46,7 +46,7 @@ exports.registerUser = async (req, res) => {
         });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json('Server Error');
     }
 };
 
@@ -85,6 +85,6 @@ exports.loginUser = async (req, res) => {
         });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json('Server Error');
     }
 };

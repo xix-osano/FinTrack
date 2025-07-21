@@ -6,6 +6,10 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState(''); // For displaying success/error messages
+    const [loading, setLoading] = useState(false); // New loading state
+
+    // Define minimum password length
+    const MIN_PASSWORD_LENGTH = 6;
 
     useEffect(() => {
         if (isRegisterActive) {
@@ -19,8 +23,17 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+        setLoading(true);
+
+        // Client-side validation for password length
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            setMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
+            setLoading(false);
+            return;
+        }
+
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', { // Replace with your backend URL
+            const response = await fetch('http://localhost:5000/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -31,21 +44,36 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
             const data = await response.json();
 
             if (response.ok) {
-                onAuthSuccess(data.token); // Pass token to App.js
+                onAuthSuccess(data.token);
             } else {
-                setMessage(data.msg || 'Login failed');
+                setMessage(data.msg || 'Login failed. Please check your credentials.');
             }
         } catch (error) {
             console.error('Login error:', error);
-            setMessage('Network error. Please try again.');
+            if (error instanceof SyntaxError) {
+                setMessage('An unexpected error occurred. Please try again later.');
+            } else {
+                setMessage('Network error. Please ensure the backend is running and accessible.');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
         setMessage('');
+        setLoading(true);
+
+        // Client-side validation for password length
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            setMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`);
+            setLoading(false);
+            return;
+        }
+
         try {
-            const response = await fetch('http://localhost:5000/api/auth/register', { // Replace with your backend URL
+            const response = await fetch('http://localhost:5000/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -56,13 +84,19 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
             const data = await response.json();
 
             if (response.ok) {
-                onAuthSuccess(data.token); // Pass token to App.js
+                onAuthSuccess(data.token);
             } else {
-                setMessage(data.msg || 'Registration failed');
+                setMessage(data.msg || 'Registration failed. Please try a different username/email.');
             }
         } catch (error) {
             console.error('Registration error:', error);
-            setMessage('Network error. Please try again.');
+            if (error instanceof SyntaxError) {
+                setMessage('An unexpected error occurred during registration. Please try again later.');
+            } else {
+                setMessage('Network error. Please ensure the backend is running and accessible.');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -153,7 +187,7 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
         .btn {
             width: 100%;
             height: 48px;
-            background: #1f42a3ff;
+            background: #2347a8ff;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, .1);
             border: none;
@@ -162,6 +196,11 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
             color: #fff;
             font-weight: 600;
             margin-top: 10px;
+        }
+
+        .btn:disabled {
+            background-color: #a0aec0;
+            cursor: not-allowed;
         }
 
         .social-icons {
@@ -193,7 +232,7 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
             left: -250%;
             width: 300%;
             height: 100%;
-            background: #1f42a3ff;
+            background: #2347a8ff;
             border-radius: 150px;
             z-index: 2;
             transition: 1.8s ease-in-out;
@@ -316,7 +355,7 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
                     <div className="input-box">
                         <input
                             type="password"
-                            placeholder="Password"
+                            placeholder={`Password (min ${MIN_PASSWORD_LENGTH} chars)`}
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
@@ -326,7 +365,9 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
                     <div className="forgot-link">
                         <a href="#">Forgot Password?</a>
                     </div>
-                    <button type="submit" className="btn">Login</button>
+                    <button type="submit" className="btn" disabled={loading}>
+                        {loading ? 'Logging In...' : 'Login'}
+                    </button>
                     <p>or login with social platforms</p>
                     <div className="social-icons">
                         <a href="#"><i className='bx bxl-google'></i></a>
@@ -364,14 +405,16 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
                     <div className="input-box">
                         <input
                             type="password"
-                            placeholder="Password"
+                            placeholder={`Password (min ${MIN_PASSWORD_LENGTH} chars)`}
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
                         <i className='bx bxs-lock-alt'></i>
                     </div>
-                    <button type="submit" className="btn">Register</button>
+                    <button type="submit" className="btn" disabled={loading}>
+                        {loading ? 'Registering...' : 'Register'}
+                    </button>
                     <p>or register with social platforms</p>
                     <div className="social-icons">
                         <a href="#"><i className='bx bxl-google'></i></a>
@@ -386,13 +429,13 @@ const AuthForm = ({ navigate, initialPath, onAuthSuccess }) => {
                 <div className="toggle-panel toggle-left">
                     <h1>Hello, Welcome!</h1>
                     <p>Don't have an account?</p>
-                    <button className="btn register-btn" onClick={() => setIsRegisterActive(true)}>Register</button>
+                    <button className="btn register-btn" onClick={() => setIsRegisterActive(true)} disabled={loading}>Register</button>
                 </div>
 
                 <div className="toggle-panel toggle-right">
                     <h1>Welcome Back!</h1>
                     <p>Already have an account?</p>
-                    <button className="btn login-btn" onClick={() => setIsRegisterActive(false)}>Login</button>
+                    <button className="btn login-btn" onClick={() => setIsRegisterActive(false)} disabled={loading}>Login</button>
                 </div>
             </div>
         </div>
