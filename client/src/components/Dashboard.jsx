@@ -1,21 +1,39 @@
 import React, { useState, useEffect } from 'react';
-import ExpenseForm from './expenses/ExpenseForm';
-import ExpenseList from './expenses/ExpenseList';
+import SummaryCard from './transactions/SummaryCard';
+import InputSection from './transactions/InputSection';
+import TransactionList from './transactions/TransactionList';
+import BalanceDisplay from './transactions/BalanceDisplay';
 
+// Dashboard component containing the main application logic and UI
 const Dashboard = ({ navigate, token, onLogout }) => {
-    const [expenses, setExpenses] = useState([]);
+    const [totalExpenses, setTotalExpenses] = useState(0);
+    const [totalIncome, setTotalIncome] = useState(0);
+    const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Base URL for your backend API
-    const API_BASE_URL = 'http://localhost:5000/api'; // Make sure this matches your backend URL
+    // Separate states for expense input fields
+    const [expenseCategory, setExpenseCategory] = useState('Other');
+    const [expenseDescription, setExpenseDescription] = useState('');
+    const [expenseAmount, setExpenseAmount] = useState('');
 
-    // Function to fetch expenses from the backend
-    const fetchExpenses = async () => {
+    // Separate states for income input fields
+    const [incomeCategory, setIncomeCategory] = useState('Salary');
+    const [incomeDescription, setIncomeDescription] = useState('');
+    const [incomeAmount, setIncomeAmount] = useState('');
+
+    // Calculate balance whenever expenses or income changes
+    const balance = totalIncome - totalExpenses;
+
+    // BASE URL for backend API
+    const API_BASE_URL = 'http://localhost:5000/api';
+
+    // Function to fetch transactions from the backend
+    const fetchTransactions = async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/expenses`, {
+            const response = await fetch(`${API_BASE_URL}/transactions`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 },
@@ -27,45 +45,66 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                     throw new Error('Unauthorized. Please log in again.');
                 }
                 const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to fetch expenses');
+                throw new Error(errorData.msg || 'Failed to fetch transactions');
             }
 
             const data = await response.json();
-            setExpenses(data);
+            setTransactions(data);
         } catch (err) {
-            console.error('Error fetching expenses:', err);
+            console.error('Error fetching transactions:', err);
             setError(err.message);
-            setExpenses([]); // Clear expenses on error
+            setTransactions([]); // Clear transactions on error
         } finally {
             setLoading(false);
         }
     };
 
-    // Fetch expenses when component mounts or token changes
+    // Fetch transactions when component mounts or token changes
     useEffect(() => {
+        console.log('Dashboard useEffect triggered. Token value in useEffect:', token);
+
         if (token) {
-            fetchExpenses();
+            console.log('Dashboard: Token is present, attempting to fetch transactions...');
+            fetchTransactions();
         } else {
-            // If no token, navigate to login (handled by App.js)
-            setExpenses([]);
+            console.log('Dashboard: No token, resetting transactions and loading state.');
+            setTransactions([]);
             setLoading(false);
         }
     }, [token]); // Re-fetch if token changes
 
-    // Handle adding a new expense
-    const addExpense = async (newExpenseData) => {
+    // Recalculate total expenses and income whenever transactions change
+    useEffect(() => {
+        let expenses = 0;
+        let income = 0;
+        transactions.forEach(transaction => {
+            if (transaction.type === 'expense') {
+                expenses += transaction.amount;
+            } else if (transaction.type === 'income') {
+                income += transaction.amount;
+            }
+        });
+        setTotalExpenses(expenses);
+        setTotalIncome(income);
+    }, [transactions]);
+
+
+    // Handle adding a new transaction
+    const handleAddTransaction = async (newTransactionData) => {
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/expenses`, {
+            const response = await fetch(`${API_BASE_URL}/transactions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({
-                    description: newExpenseData.description,
-                    amount: parseFloat(newExpenseData.amount),
-                    category: newExpenseData.category,
+                    description: newTransactionData.description,
+                    amount: parseFloat(newTransactionData.amount), // Ensure amount is a number
+                    type: newTransactionData.type, // 'expense' or 'income'
+                    category: newTransactionData.category,
+                    date: new Date().toISOString(), // Use ISO format for date
                 }),
             });
 
@@ -75,23 +114,34 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                     throw new Error('Unauthorized. Please log in again.');
                 }
                 const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to add expense');
+                throw new Error(errorData.msg || `Failed to add ${newTransactionData.type}`);
             }
 
-            const addedExpense = await response.json();
-            setExpenses(prev => [...prev, addedExpense]);
-            console.log("Expense added:", addedExpense);
+            const addedTransaction = await response.json();
+            setTransactions(prev => [...prev, addedTransaction]);
+            console.log("Transaction added:", addedTransaction);
+
+            // Clear input fields after successful addition
+            if (newTransactionData.type === 'expense') {
+                setExpenseDescription('');
+                setExpenseAmount('');
+                setExpenseCategory('Other');
+            } else if (newTransactionData.type === 'income') {
+                setIncomeDescription('');
+                setIncomeAmount('');
+                setIncomeCategory('Salary');
+            }
         } catch (err) {
-            console.error('Error adding expense:', err);
+            console.error('Error adding transaction:', err);
             setError(err.message);
         }
     };
 
-    // Handle deleting an expense
-    const deleteExpense = async (id) => {
+    // Handle deleting a transaction
+    const deleteTransaction = async (id) => {
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -104,22 +154,22 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                     throw new Error('Unauthorized. Please log in again.');
                 }
                 const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to delete expense');
+                throw new Error(errorData.msg || 'Failed to delete transaction');
             }
 
-            setExpenses(prev => prev.filter(expense => expense._id !== id)); // Use _id from MongoDB
-            console.log("Deleted expense with ID:", id);
+            setTransactions(prev => prev.filter(transaction => transaction._id !== id)); // Use _id from MongoDB
+            console.log("Deleted transaction with ID:", id);
         } catch (err) {
-            console.error('Error deleting expense:', err);
+            console.error('Error deleting transaction:', err);
             setError(err.message);
         }
     };
 
-    // Placeholder for edit expense (would typically open a modal or navigate to an edit form)
-    const editExpense = async (id, updatedData) => {
+    // Placeholder for edit transaction (would typically open a modal or navigate to an edit form)
+    const editTransaction = async (id, updatedData) => {
         setError(null);
         try {
-            const response = await fetch(`${API_BASE_URL}/expenses/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/transactions/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -134,72 +184,115 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                     throw new Error('Unauthorized. Please log in again.');
                 }
                 const errorData = await response.json();
-                throw new Error(errorData.msg || 'Failed to update expense');
+                throw new Error(errorData.msg || 'Failed to update transaction');
             }
 
-            const updatedExpense = await response.json();
-            setExpenses(prev => prev.map(exp => (exp._id === id ? updatedExpense : exp))); // Update in state
-            console.log("Updated expense:", updatedExpense);
+            const updatedTransaction = await response.json();
+            // Corrected typo: trn instead of exp
+            setTransactions(prev => prev.map(trn => (trn._id === id ? updatedTransaction : trn))); // Update in state
+            console.log("Updated transaction:", updatedTransaction);
         } catch (err) {
-            console.error('Error updating expense:', err);
+            console.error('Error updating transaction:', err);
             setError(err.message);
         }
     };
 
-    // Calculate total expenses
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2);
+    // Handlers for adding specific transaction types (expense/income)
+    const handleAddExpense = () => {
+        // Client-side validation for expense
+        if (!expenseDescription.trim() || isNaN(parseFloat(expenseAmount)) || parseFloat(expenseAmount) <= 0) {
+            setError("Please enter a valid description and a positive amount for the expense.");
+            return;
+        }
+        setError(null); // Clear any previous errors
+        handleAddTransaction({
+            type: 'expense',
+            description: expenseDescription,
+            amount: expenseAmount,
+            category: expenseCategory,
+        });
+    };
+
+    const handleAddIncome = () => {
+        // Client-side validation for income
+        if (!incomeDescription.trim() || isNaN(parseFloat(incomeAmount)) || parseFloat(incomeAmount) <= 0) {
+            setError("Please enter a valid description and a positive amount for the income.");
+            return;
+        }
+        setError(null); // Clear any previous errors
+        handleAddTransaction({
+            type: 'income',
+            description: incomeDescription,
+            amount: incomeAmount,
+            category: incomeCategory,
+        });
+    };
+
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <p className="text-xl text-gray-700">Loading expenses...</p>
-            </div>
-        );
+        return <div className="text-center p-6 text-gray-600">Loading transactions...</div>;
     }
 
     if (error) {
-        return (
-            <div className="flex flex-col items-center justify-center p-8 bg-red-100 rounded-lg shadow-xl max-w-md w-full mx-auto my-8">
-                <p className="text-xl text-red-700 mb-4">Error: {error}</p>
-                <button
-                    className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
-                    onClick={fetchExpenses}
-                >
-                    Retry
-                </button>
-                <button
-                    className="mt-4 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg"
-                    onClick={onLogout}
-                >
-                    Logout
-                </button>
-            </div>
-        );
+        return <div className="text-center p-6 text-red-600">Error: {error}</div>;
     }
 
+
     return (
-        <div className="flex flex-col items-center p-8 bg-white rounded-lg shadow-xl max-w-4xl w-full mx-auto my-8">
-            <h1 className="text-4xl font-extrabold text-indigo-700 mb-6">Expense Tracker Dashboard</h1>
+        <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-4xl">
+            <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">FinTrack Dashboard</h1>
             <p className="text-gray-700 mb-8 text-lg text-center">
-                Manage your finances efficiently. Add, view, and track your expenses here.
+                Manage your finances efficiently. Add, view, and track your expenses and income here.
             </p>
 
-            {/* Total Expenses Summary */}
-            <div className="w-full bg-indigo-100 p-4 rounded-lg shadow-md mb-8">
-                <h2 className="text-2xl font-semibold text-indigo-800 mb-2">Total Expenses:</h2>
-                <p className="text-4xl font-bold text-indigo-900">${totalExpenses}</p>
+            {/* Error Display */}
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                    <strong className="font-bold">Error:</strong>
+                    <span className="block sm:inline"> {error}</span>
+                </div>
+            )}
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <SummaryCard title="Total Expenses" amount={totalExpenses} type="expense" />
+                <SummaryCard title="Total Income" amount={totalIncome} type="income" />
             </div>
 
-            {/* Add New Expense Form */}
-            <ExpenseForm onAddExpense={addExpense} />
+            {/* Input Sections */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <InputSection
+                    title="Add Expense"
+                    description={expenseDescription}
+                    category={expenseCategory}
+                    amount={expenseAmount}
+                    onDescriptionChange={setExpenseDescription}
+                    onAmountChange={setExpenseAmount}
+                    onCategoryChange={setExpenseCategory}
+                    onAdd={handleAddExpense} // Changed to call the new handler
+                />
+                <InputSection
+                    title="Add Income"
+                    description={incomeDescription}
+                    category={incomeCategory}
+                    amount={incomeAmount}
+                    onDescriptionChange={setIncomeDescription}
+                    onAmountChange={setIncomeAmount}
+                    onCategoryChange={setIncomeCategory}
+                    onAdd={handleAddIncome} // Changed to call the new handler
+                />
+            </div>
 
-            {/* Expense List */}
-            <ExpenseList expenses={expenses} onDeleteExpense={deleteExpense} onEditExpense={editExpense} />
+            {/* List of Incomes and Expenses */}
+            <TransactionList transactions={transactions} onDeleteTransaction={deleteTransaction} onEditTransaction={editTransaction} />
+
+            {/* Balance Display */}
+            <BalanceDisplay balance={balance} />
 
             {/* Logout Button */}
-            <div className="mt-8 w-full max-w-md">
+            <div className="mt-8 text-center"> {/* Centering the logout button */}
                 <button
-                    className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out"
+                    className="w-auto bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out"
                     onClick={onLogout}
                 >
                     Logout
@@ -208,4 +301,5 @@ const Dashboard = ({ navigate, token, onLogout }) => {
         </div>
     );
 };
+
 export default Dashboard;

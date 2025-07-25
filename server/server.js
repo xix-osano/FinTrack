@@ -2,7 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
-const expenseRoutes = require('./routes/expenseRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
 const cors = require('cors'); // Import cors
 
 // Load environment variables from .env file
@@ -21,7 +21,7 @@ app.use(express.json());
 
 // Define API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/expenses', expenseRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Basic route for testing server status
 app.get('/', (req, res) => {
