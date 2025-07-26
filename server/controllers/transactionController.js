@@ -6,7 +6,7 @@ const Transaction = require('../models/Transaction');
 exports.getTransactions = async (req, res) => {
     try {
         // req.user.id comes from the protect middleware
-        const transactions = await Transaction.find({ user: req.user.id }).sort({ date: -1 });
+        const transactions = await Transaction.find({ userID: req.user.id }).sort({ date: -1 });
         res.json(transactions);
     } catch (err) {
         console.error(err.message);
@@ -58,7 +58,7 @@ exports.updateTransaction = async (req, res) => {
         }
 
         // Make sure the authenticated user owns the expense
-        if (transaction.user.toString() !== req.user.id) {
+        if (transaction.userID.toString() !== req.user.id) {
             return res.status(401).json({ msg: 'Not authorized to update this transaction' });
         }
 
@@ -94,7 +94,7 @@ exports.deleteTransaction = async (req, res) => {
         }
 
         // Make sure the authenticated user owns the transaction
-        if (transaction.user.toString() !== req.user.id) {
+        if (transaction.userID.toString() !== req.user.id) {
             return res.status(401).json({ msg: 'Not authorized to delete this transaction' });
         }
 

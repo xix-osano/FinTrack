@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SummaryCard from './transactions/SummaryCard';
 import InputSection from './transactions/InputSection';
 import TransactionList from './transactions/TransactionList';
@@ -11,6 +11,10 @@ const Dashboard = ({ navigate, token, onLogout }) => {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Track if we've already fetched transactions for this token
+    const lastFetchedTokenRef = useRef(null);
+    const isFetchingRef = useRef(false);
 
     // Separate states for expense input fields
     const [expenseCategory, setExpenseCategory] = useState('Other');
@@ -30,9 +34,18 @@ const Dashboard = ({ navigate, token, onLogout }) => {
 
     // Function to fetch transactions from the backend
     const fetchTransactions = async () => {
+        // Prevent multiple simultaneous fetches
+        if (isFetchingRef.current) {
+            console.log('Dashboard: Fetch already in progress, skipping...');
+            return;
+        }
+
         setLoading(true);
         setError(null);
+        isFetchingRef.current = true;
+
         try {
+            console.log('Dashboard: Starting fetch transactions...');
             const response = await fetch(`${API_BASE_URL}/transactions`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -50,12 +63,15 @@ const Dashboard = ({ navigate, token, onLogout }) => {
 
             const data = await response.json();
             setTransactions(data);
+            lastFetchedTokenRef.current = token;
+            console.log('Dashboard: Successfully fetched transactions');
         } catch (err) {
             console.error('Error fetching transactions:', err);
             setError(err.message);
             setTransactions([]); // Clear transactions on error
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
     };
 
@@ -64,12 +80,19 @@ const Dashboard = ({ navigate, token, onLogout }) => {
         console.log('Dashboard useEffect triggered. Token value in useEffect:', token);
 
         if (token) {
-            console.log('Dashboard: Token is present, attempting to fetch transactions...');
-            fetchTransactions();
+            // Only fetch if token is different from last fetched token
+            if (token !== lastFetchedTokenRef.current) {
+                console.log('Dashboard: Token is present and different, attempting to fetch transactions...');
+                fetchTransactions();
+            } else {
+                console.log('Dashboard: Token unchanged, skipping fetch...');
+                setLoading(false);
+            }
         } else {
             console.log('Dashboard: No token, resetting transactions and loading state.');
             setTransactions([]);
             setLoading(false);
+            lastFetchedTokenRef.current = null;
         }
     }, [token]); // Re-fetch if token changes
 
@@ -87,7 +110,6 @@ const Dashboard = ({ navigate, token, onLogout }) => {
         setTotalExpenses(expenses);
         setTotalIncome(income);
     }, [transactions]);
-
 
     // Handle adding a new transaction
     const handleAddTransaction = async (newTransactionData) => {
@@ -165,7 +187,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
         }
     };
 
-    // Placeholder for edit transaction (would typically open a modal or navigate to an edit form)
+    // Edit transaction
     const editTransaction = async (id, updatedData) => {
         setError(null);
         try {
@@ -188,7 +210,6 @@ const Dashboard = ({ navigate, token, onLogout }) => {
             }
 
             const updatedTransaction = await response.json();
-            // Corrected typo: trn instead of exp
             setTransactions(prev => prev.map(trn => (trn._id === id ? updatedTransaction : trn))); // Update in state
             console.log("Updated transaction:", updatedTransaction);
         } catch (err) {
@@ -228,7 +249,6 @@ const Dashboard = ({ navigate, token, onLogout }) => {
         });
     };
 
-
     if (loading) {
         return <div className="text-center p-6 text-gray-600">Loading transactions...</div>;
     }
@@ -236,7 +256,6 @@ const Dashboard = ({ navigate, token, onLogout }) => {
     if (error) {
         return <div className="text-center p-6 text-red-600">Error: {error}</div>;
     }
-
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-4xl">
@@ -269,7 +288,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                     onDescriptionChange={setExpenseDescription}
                     onAmountChange={setExpenseAmount}
                     onCategoryChange={setExpenseCategory}
-                    onAdd={handleAddExpense} // Changed to call the new handler
+                    onAdd={handleAddExpense}
                 />
                 <InputSection
                     title="Add Income"
@@ -279,7 +298,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                     onDescriptionChange={setIncomeDescription}
                     onAmountChange={setIncomeAmount}
                     onCategoryChange={setIncomeCategory}
-                    onAdd={handleAddIncome} // Changed to call the new handler
+                    onAdd={handleAddIncome}
                 />
             </div>
 
@@ -290,7 +309,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
             <BalanceDisplay balance={balance} />
 
             {/* Logout Button */}
-            <div className="mt-8 text-center"> {/* Centering the logout button */}
+            <div className="mt-8 text-center">
                 <button
                     className="w-auto bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out"
                     onClick={onLogout}
