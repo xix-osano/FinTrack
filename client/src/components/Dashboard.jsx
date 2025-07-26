@@ -3,6 +3,7 @@ import SummaryCard from './transactions/SummaryCard';
 import InputSection from './transactions/InputSection';
 import TransactionList from './transactions/TransactionList';
 import BalanceDisplay from './transactions/BalanceDisplay';
+import Navbar from './Navbar';
 
 // Dashboard component containing the main application logic and UI
 const Dashboard = ({ navigate, token, onLogout }) => {
@@ -259,6 +260,10 @@ const Dashboard = ({ navigate, token, onLogout }) => {
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-4xl">
+            {/* Navbar Component */}
+            <Navbar onLogout={onLogout} appName="FinTrack" />
+
+            {/* Dashboard Title and Description */}
             <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">FinTrack Dashboard</h1>
             <p className="text-gray-700 mb-8 text-lg text-center">
                 Manage your finances efficiently. Add, view, and track your expenses and income here.
@@ -307,16 +312,6 @@ const Dashboard = ({ navigate, token, onLogout }) => {
 
             {/* Balance Display */}
             <BalanceDisplay balance={balance} />
-
-            {/* Logout Button */}
-            <div className="mt-8 text-center">
-                <button
-                    className="w-auto bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out"
-                    onClick={onLogout}
-                >
-                    Logout
-                </button>
-            </div>
         </div>
     );
 };
