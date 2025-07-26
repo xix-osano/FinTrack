@@ -31,7 +31,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
     const balance = totalIncome - totalExpenses;
 
     // BASE URL for backend API
-    const API_BASE_URL = 'http://localhost:5000/api';
+    const API_BASE_URL = 'https://fintrack-cq7c.onrender.com/api';
 
     // Function to fetch transactions from the backend
     const fetchTransactions = async () => {

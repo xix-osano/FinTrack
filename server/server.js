@@ -25,7 +25,7 @@ app.use('/api/transactions', transactionRoutes);
 
 // Basic route for testing server status
 app.get('/', (req, res) => {
-    res.send('API is running...');
+    res.send('FinTrack API is running...');
 });
 
 const PORT = process.env.PORT || 5000;
