@@ -307,7 +307,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
                 />
             </div>
 
-            {/* List of Incomes and Expenses */}
+            {/* List of Incomes & Expenses */}
             <TransactionList transactions={transactions} onDeleteTransaction={deleteTransaction} onEditTransaction={editTransaction} />
 
             {/* Balance Display */}
