@@ -266,7 +266,7 @@ const Dashboard = ({ navigate, token, onLogout }) => {
             {/* Dashboard Title and Description */}
             <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">FinTrack Dashboard</h1>
             <p className="text-gray-700 mb-8 text-lg text-center">
-                Manage your finances efficiently. Add, view, and track your expenses and income here.
+                Manage your finances efficiently. Add, view, and track your expenses & income here.
             </p>
 
             {/* Error Display */}
